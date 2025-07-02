@@ -2,20 +2,21 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Maître - Agent d'accueil</title>
+    <title>Agent d'accueil</title>
     <style>
         body { font-family: Arial; padding: 20px; }
         li.terminated { background-color: #cce5ff; }
     </style>
 </head>
 <body>
+    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px; margin-bottom: 10px;">
     <h1>Agent d'accueil</h1>
     <button onclick="sendTimingRequest()">Demander le timing</button>
     <ul id="responses"></ul>
 
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
-        const socket = new WebSocket("ws://" + window.location.host);
-
+        const socket = io('https://orange-timing-app.onrender.com');
         const timingMap = {
             '2 min': 2 * 60,
             '5 min': 5 * 60,
@@ -44,7 +45,6 @@
                 timerSpan.style.fontWeight = 'bold';
                 li.appendChild(document.createTextNode(`${msg.name} : `));
                 li.appendChild(timerSpan);
-
                 ul.appendChild(li);
 
                 if (msg.timing === 'Disponible') {
