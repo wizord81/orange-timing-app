@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Conseiller</title>
+</head>
+<body>
+    <h1>Conseiller</h1>
+    <input type="text" id="name" placeholder="Votre prénom"><br><br>
+    <button onclick="sendTiming('2 min')">2 minutes</button>
+    <button onclick="sendTiming('5 min')">5 minutes</button>
+    <button onclick="sendTiming('10 min')">10 minutes</button>
+    <button onclick="sendTiming('30 min')">30 minutes</button>
+    <button onclick="sendTiming('Disponible')">Disponible</button>
+
+    <script>
+        const socket = new WebSocket("ws://" + window.location.host);
+
+        socket.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            if (msg.type === 'askTiming') {
+                alert("Merci d’indiquer votre timing.");
+            }
+        };
+
+        function sendTiming(timing) {
+            const name = document.getElementById('name').value || "Anonyme";
+            socket.send(JSON.stringify({
+                type: 'response',
+                name: name,
+                timing: timing
+            }));
+        }
+    </script>
+</body>
+</html>
