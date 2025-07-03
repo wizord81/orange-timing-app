@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Conseiller</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .btn {
+            padding: 10px 20px;
+            margin: 8px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn.green { background-color: #28a745; }
+        .btn.orange { background-color: #fd7e14; }
+        .btn.red { background-color: #dc3545; }
+        .btn.blue { background-color: #007bff; }
+        .btn:hover { opacity: 0.9; }
+        #chatBox {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            width: 280px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            background: #f2f2f2;
+            padding: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
+    <h1>Conseiller</h1>
+    <input type="text" id="name" placeholder="Votre prénom"><br><br>
+    <button class="btn green" onclick="sendTiming('2 min')">2 minutes</button>
+    <button class="btn green" onclick="sendTiming('5 min')">5 minutes</button>
+    <button class="btn orange" onclick="sendTiming('10 min')">10 minutes</button>
+    <button class="btn orange" onclick="sendTiming('20 min')">20 minutes</button>
+    <button class="btn red" onclick="sendTiming('30 min')">30 minutes</button>
+    <button class="btn red" onclick="sendTiming('45 min')">45 minutes</button>
+    <button class="btn blue" onclick="sendTiming('Disponible')">Disponible</button>
+
+    <div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
+
+    <div style="margin-top: 20px;">
+        
+        
+        
+    </div>
