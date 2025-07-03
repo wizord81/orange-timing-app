@@ -3,23 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <title>Conseiller</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .btn {
+            padding: 10px 20px;
+            margin: 8px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+        }
+        .btn.green { background-color: #28a745; }
+        .btn.orange { background-color: #fd7e14; }
+        .btn.red { background-color: #dc3545; }
+        .btn.blue { background-color: #007bff; }
+        .btn:hover { opacity: 0.9; }
+    </style>
 </head>
 <body>
     <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Conseiller</h1>
     <input type="text" id="name" placeholder="Votre prénom"><br><br>
-    <button onclick="sendTiming('2 min')">2 minutes</button>
-    <button onclick="sendTiming('5 min')">5 minutes</button>
-    <button onclick="sendTiming('10 min')">10 minutes</button>
-    <button onclick="sendTiming('30 min')">30 minutes</button>
-    <button onclick="sendTiming('Disponible')">Disponible</button>
+    <button class="btn green" onclick="sendTiming('2 min')">2 minutes</button>
+    <button class="btn green" onclick="sendTiming('5 min')">5 minutes</button>
+    <button class="btn orange" onclick="sendTiming('10 min')">10 minutes</button>
+    <button class="btn red" onclick="sendTiming('30 min')">30 minutes</button>
+    <button class="btn blue" onclick="sendTiming('Disponible')">Disponible</button>
 
+    <div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
     <audio id="alertSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
 
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
         const socket = io();
-
         let userName = '';
 
         function sendTiming(timing) {
@@ -27,6 +44,12 @@
             socket.emit('register', { role: 'conseiller', name: userName });
             socket.emit('response', { name: userName, timing });
             showConfirmation(timing);
+        }
+
+        function showConfirmation(timing) {
+            const confirmation = document.getElementById('confirmation');
+            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            confirmation.textContent = `Réponse "${timing}" envoyée à ${now}`;
         }
 
         socket.on('askTiming', () => {
@@ -54,20 +77,5 @@
             }
         }
     </script>
-
-<div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
-
-<script>
-    function getFormattedTime() {
-        const now = new Date();
-        return now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    }
-
-    function showConfirmation(timing) {
-        const confirmation = document.getElementById('confirmation');
-        confirmation.textContent = `Réponse "${timing}" envoyée à ${getFormattedTime()}`;
-    }
-</script>
-
 </body>
 </html>
