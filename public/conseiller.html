@@ -14,6 +14,8 @@
     <button onclick="sendTiming('30 min')">30 minutes</button>
     <button onclick="sendTiming('Disponible')">Disponible</button>
 
+    <audio id="alertSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
+
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
         const socket = io();
@@ -24,11 +26,48 @@
             userName = document.getElementById('name').value.trim() || "Anonyme";
             socket.emit('register', { role: 'conseiller', name: userName });
             socket.emit('response', { name: userName, timing });
+            showConfirmation(timing);
         }
 
         socket.on('askTiming', () => {
-            alert("Merci d’indiquer votre timing.");
+            playAlert();
+            showNotification();
         });
+
+        function playAlert() {
+            const audio = document.getElementById('alertSound');
+            audio.play().catch(() => {});
+        }
+
+        function showNotification() {
+            if (Notification.permission === "granted") {
+                new Notification("Demande de l'agent d'accueil", {
+                    body: "Merci d’indiquer votre timing.",
+                    icon: "orange-logo.png"
+                });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        showNotification();
+                    }
+                });
+            }
+        }
     </script>
+
+<div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
+
+<script>
+    function getFormattedTime() {
+        const now = new Date();
+        return now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function showConfirmation(timing) {
+        const confirmation = document.getElementById('confirmation');
+        confirmation.textContent = `Réponse "${timing}" envoyée à ${getFormattedTime()}`;
+    }
+</script>
+
 </body>
 </html>

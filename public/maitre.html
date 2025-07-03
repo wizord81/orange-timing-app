@@ -83,6 +83,7 @@
             }, 1000);
 
             responses[msg.name] = { li, interval, remaining };
+            logReception(msg.name, msg.timing);
             sortResponses();
         });
 
@@ -95,5 +96,18 @@
             items.forEach(li => ul.appendChild(li));
         }
     </script>
+
+<div id="log" style="margin-top: 20px; font-style: italic;"></div>
+
+<script>
+    function logReception(name, timing) {
+        const log = document.getElementById('log');
+        const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const entry = document.createElement('div');
+        entry.textContent = `Réponse de ${name} ("${timing}") reçue à ${now}`;
+        log.appendChild(entry);
+    }
+</script>
+
 </body>
 </html>
