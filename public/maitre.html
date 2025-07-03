@@ -12,7 +12,14 @@
     <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Agent d'accueil</h1>
     <button onclick="askTiming()">Demander le timing</button>
+    <button onclick="refreshView()">🔄 Refresh affichage</button>
     <ul id="responses"></ul>
+
+    <div style="margin-top: 20px;">
+        <h3>Envoyer un message à tous les conseillers</h3>
+        <input type="text" id="messageText" placeholder="Votre message" style="width: 300px;">
+        <button onclick="sendMessageToConseillers()">Envoyer</button>
+    </div>
 
     <div id="history" style="position: fixed; bottom: 10px; right: 10px; width: 300px; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; font-size: 14px;">
         <strong>Historique des MAJ :</strong>
@@ -24,12 +31,8 @@
         const socket = io();
         const responses = {};
         const timingMap = {
-            '2 min': 2 * 60,
-            '5 min': 5 * 60,
-            '10 min': 10 * 60,
-            '20 min': 20 * 60,
-            '30 min': 30 * 60,
-            '45 min': 45 * 60
+            '2 min': 2 * 60, '5 min': 5 * 60, '10 min': 10 * 60,
+            '20 min': 20 * 60, '30 min': 30 * 60, '45 min': 45 * 60
         };
 
         socket.emit('register', { role: 'maitre', name: 'Accueil' });
@@ -37,6 +40,16 @@
         function askTiming() {
             document.getElementById('responses').innerHTML = '';
             socket.emit('askTiming');
+        }
+
+        function refreshView() {
+            document.getElementById('responses').innerHTML = '';
+            Object.keys(responses).forEach(name => {
+                if (responses[name].li) {
+                    document.getElementById('responses').appendChild(responses[name].li);
+                }
+            });
+            sortResponses();
         }
 
         socket.on('response', (msg) => {
@@ -130,6 +143,18 @@
                 });
             }
         }
+
+        function sendMessageToConseillers() {
+            const message = document.getElementById('messageText').value;
+            if (message.trim()) {
+                socket.emit('messageToConseiller', { text: message });
+                document.getElementById('messageText').value = '';
+            }
+        }
+
+        socket.on('messageToMaitre', (data) => {
+            alert(`Message d’un conseiller : ${data.text}`);
+        });
     </script>
 </body>
 </html>

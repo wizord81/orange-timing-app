@@ -19,6 +19,15 @@
         .btn.red { background-color: #dc3545; }
         .btn.blue { background-color: #007bff; }
         .btn:hover { opacity: 0.9; }
+        #privateMsgBox {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            width: 280px;
+            background: #f2f2f2;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
@@ -34,6 +43,13 @@
     <button class="btn blue" onclick="sendTiming('Disponible')">Disponible</button>
 
     <div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
+
+    <div id="privateMsgBox">
+        <strong>Message au maître :</strong><br>
+        <input type="text" id="privateMsg" placeholder="Retard ou info..." style="width: 100%;">
+        <button onclick="sendMessageToMaitre()">Envoyer</button>
+    </div>
+
     <audio id="alertSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
 
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
@@ -54,9 +70,22 @@
             confirmation.textContent = `Réponse "${timing}" envoyée à ${now}`;
         }
 
+        function sendMessageToMaitre() {
+            const msg = document.getElementById('privateMsg').value.trim();
+            if (msg.length > 0) {
+                socket.emit('messageToMaitre', { text: msg });
+                document.getElementById('privateMsg').value = '';
+                alert("Message envoyé à l’agent d’accueil.");
+            }
+        }
+
         socket.on('askTiming', () => {
             playAlert();
             showNotification();
+        });
+
+        socket.on('messageToConseiller', (data) => {
+            alert("Message de l’agent d’accueil : " + data.text);
         });
 
         function playAlert() {
