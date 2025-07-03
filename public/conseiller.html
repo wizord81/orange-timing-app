@@ -19,14 +19,17 @@
         .btn.red { background-color: #dc3545; }
         .btn.blue { background-color: #007bff; }
         .btn:hover { opacity: 0.9; }
-        #privateMsgBox {
+        #chatBox {
             position: fixed;
             bottom: 10px;
             left: 10px;
             width: 280px;
-            background: #f2f2f2;
+            max-height: 150px;
+            overflow-y: auto;
             border: 1px solid #ccc;
+            background: #f2f2f2;
             padding: 10px;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -44,11 +47,13 @@
 
     <div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
 
-    <div id="privateMsgBox">
-        <strong>Message au maître :</strong><br>
-        <input type="text" id="privateMsg" placeholder="Retard ou info..." style="width: 100%;">
-        <button onclick="sendMessageToMaitre()">Envoyer</button>
+    <div style="margin-top: 20px;">
+        <strong>Message à l’accueil :</strong><br>
+        <input type="text" id="privateMsg" placeholder="Retard ou info..." style="width: 300px;">
+        <button onclick="sendMessageToAccueil()">Envoyer</button>
     </div>
+
+    <div id="chatBox"></div>
 
     <audio id="alertSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
 
@@ -70,12 +75,12 @@
             confirmation.textContent = `Réponse "${timing}" envoyée à ${now}`;
         }
 
-        function sendMessageToMaitre() {
+        function sendMessageToAccueil() {
             const msg = document.getElementById('privateMsg').value.trim();
             if (msg.length > 0) {
-                socket.emit('messageToMaitre', { text: msg });
+                socket.emit('messageToAll', { from: userName || "Conseiller", text: msg });
                 document.getElementById('privateMsg').value = '';
-                alert("Message envoyé à l’agent d’accueil.");
+                appendToChat("Moi", msg);
             }
         }
 
@@ -84,8 +89,17 @@
             showNotification();
         });
 
-        socket.on('messageToConseiller', (data) => {
-            alert("Message de l’agent d’accueil : " + data.text);
+        function appendToChat(from, text) {
+            const chatBox = document.getElementById('chatBox');
+            const line = document.createElement('div');
+            line.textContent = `${from} : ${text}`;
+            chatBox.appendChild(line);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        socket.on('messageToAll', (msg) => {
+            appendToChat(msg.from, msg.text);
+            playAlert();
         });
 
         function playAlert() {
@@ -95,7 +109,7 @@
 
         function showNotification() {
             if (Notification.permission === "granted") {
-                new Notification("Demande de l'agent d'accueil", {
+                new Notification("Demande de l'accueil", {
                     body: "Merci d’indiquer votre timing.",
                     icon: "orange-logo.png"
                 });
