@@ -22,7 +22,9 @@
             '2 min': 2 * 60,
             '5 min': 5 * 60,
             '10 min': 10 * 60,
-            '30 min': 30 * 60
+            '20 min': 20 * 60,
+            '30 min': 30 * 60,
+            '45 min': 45 * 60
         };
 
         socket.emit('register', { role: 'maitre', name: 'Accueil' });
@@ -60,10 +62,12 @@
                     li.classList.add('terminated');
                 } else if (remaining <= 5 * 60) {
                     li.style.color = 'green';
-                } else if (remaining <= 20 * 60) {
+                } else if (remaining <= 10 * 60) {
                     li.style.color = 'orange';
-                } else {
+                } else if (remaining <= 30 * 60) {
                     li.style.color = 'red';
+                } else {
+                    li.style.color = 'purple';
                 }
             };
 
