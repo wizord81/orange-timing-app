@@ -5,7 +5,7 @@
     <title>Conseiller</title>
 </head>
 <body>
-    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px; margin-bottom: 10px;">
+    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Conseiller</h1>
     <input type="text" id="name" placeholder="Votre prénom"><br><br>
     <button onclick="sendTiming('2 min')">2 minutes</button>
@@ -16,23 +16,19 @@
 
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
-        const socket = io('https://orange-timing-app.onrender.com');
+        const socket = io();
 
-        socket.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'askTiming') {
-                alert("Merci d’indiquer votre timing.");
-            }
-        };
+        let userName = '';
 
         function sendTiming(timing) {
-            const name = document.getElementById('name').value || "Anonyme";
-            socket.send(JSON.stringify({
-                type: 'response',
-                name: name,
-                timing: timing
-            }));
+            userName = document.getElementById('name').value.trim() || "Anonyme";
+            socket.emit('register', { role: 'conseiller', name: userName });
+            socket.emit('response', { name: userName, timing });
         }
+
+        socket.on('askTiming', () => {
+            alert("Merci d’indiquer votre timing.");
+        });
     </script>
 </body>
 </html>

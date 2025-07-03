@@ -1,29 +1,11 @@
 const express = require('express');
 const http = require('http');
-const WebSocket = require('ws');
+const { Server } = require('socket.io');
 const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
-let clients = [];
-
-wss.on('connection', function connection(ws) {
-    clients.push(ws);
-
-    ws.on('message', function incoming(message) {
-        clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(message);
-            }
-        });
-    });
-
-    ws.on('close', () => {
-        clients = clients.filter(client => client !== ws);
-    });
-});
+const io = new Server(server);
 
 app.get('/', (req, res) => {
     res.redirect('/maitre.html');
@@ -31,6 +13,21 @@ app.get('/', (req, res) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+io.on('connection', (socket) => {
+    socket.on('register', (data) => {
+        socket.role = data.role;
+        socket.name = data.name;
+    });
+
+    socket.on('askTiming', () => {
+        io.emit('askTiming');
+    });
+
+    socket.on('response', (data) => {
+        io.emit('response', data);
+    });
+});
+
 server.listen(3000, () => {
-    console.log('Serveur démarré sur http://localhost:3000');
+    console.log('Serveur Socket.IO en ligne sur http://localhost:3000');
 });

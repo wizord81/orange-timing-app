@@ -9,14 +9,15 @@
     </style>
 </head>
 <body>
-    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px; margin-bottom: 10px;">
+    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Agent d'accueil</h1>
-    <button onclick="sendTimingRequest()">Demander le timing</button>
+    <button onclick="askTiming()">Demander le timing</button>
     <ul id="responses"></ul>
 
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
-        const socket = io('https://orange-timing-app.onrender.com');
+        const socket = io();
+        const responses = {};
         const timingMap = {
             '2 min': 2 * 60,
             '5 min': 5 * 60,
@@ -24,69 +25,66 @@
             '30 min': 30 * 60
         };
 
-        function sendTimingRequest() {
+        socket.emit('register', { role: 'maitre', name: 'Accueil' });
+
+        function askTiming() {
             document.getElementById('responses').innerHTML = '';
-            socket.send(JSON.stringify({ type: 'askTiming' }));
+            socket.emit('askTiming');
         }
 
-        const responses = {};
+        socket.on('response', (msg) => {
+            if (responses[msg.name]) {
+                clearInterval(responses[msg.name].interval);
+                responses[msg.name].li.remove();
+            }
 
-        socket.onmessage = (event) => {
-            const msg = JSON.parse(event.data);
-            if (msg.type === 'response') {
-                if (responses[msg.name]) {
-                    clearInterval(responses[msg.name].interval);
-                    responses[msg.name].li.remove();
-                }
+            const ul = document.getElementById('responses');
+            const li = document.createElement('li');
+            const timerSpan = document.createElement('span');
+            timerSpan.style.fontWeight = 'bold';
+            li.appendChild(document.createTextNode(`${msg.name} : `));
+            li.appendChild(timerSpan);
+            ul.appendChild(li);
 
-                const ul = document.getElementById('responses');
-                const li = document.createElement('li');
-                const timerSpan = document.createElement('span');
-                timerSpan.style.fontWeight = 'bold';
-                li.appendChild(document.createTextNode(`${msg.name} : `));
-                li.appendChild(timerSpan);
-                ul.appendChild(li);
+            if (msg.timing === 'Disponible') {
+                timerSpan.textContent = 'Disponible';
+                li.style.color = 'blue';
+                responses[msg.name] = { li, interval: null };
+                return;
+            }
 
-                if (msg.timing === 'Disponible') {
-                    timerSpan.textContent = 'Disponible';
+            let remaining = timingMap[msg.timing];
+            const updateColor = () => {
+                if (remaining <= 0) {
                     li.style.color = 'blue';
-                    responses[msg.name] = { li, interval: null };
+                    li.classList.add('terminated');
+                } else if (remaining <= 5 * 60) {
+                    li.style.color = 'green';
+                } else if (remaining <= 20 * 60) {
+                    li.style.color = 'orange';
+                } else {
+                    li.style.color = 'red';
+                }
+            };
+
+            const interval = setInterval(() => {
+                if (remaining <= 0) {
+                    timerSpan.textContent = 'Terminé';
+                    updateColor();
+                    clearInterval(interval);
+                    sortResponses();
                     return;
                 }
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                timerSpan.textContent = `reste ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                updateColor();
+                remaining--;
+            }, 1000);
 
-                let remaining = timingMap[msg.timing];
-                const updateColor = () => {
-                    if (remaining <= 0) {
-                        li.style.color = 'blue';
-                        li.classList.add('terminated');
-                    } else if (remaining <= 5 * 60) {
-                        li.style.color = 'green';
-                    } else if (remaining <= 20 * 60) {
-                        li.style.color = 'orange';
-                    } else {
-                        li.style.color = 'red';
-                    }
-                };
-
-                const interval = setInterval(() => {
-                    if (remaining <= 0) {
-                        timerSpan.textContent = 'Terminé';
-                        updateColor();
-                        clearInterval(interval);
-                        sortResponses();
-                        return;
-                    }
-                    const minutes = Math.floor(remaining / 60);
-                    const seconds = remaining % 60;
-                    timerSpan.textContent = `reste ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                    updateColor();
-                    remaining--;
-                }, 1000);
-
-                responses[msg.name] = { li, interval, remaining };
-                sortResponses();
-            }
-        };
+            responses[msg.name] = { li, interval, remaining };
+            sortResponses();
+        });
 
         function sortResponses() {
             const ul = document.getElementById('responses');
