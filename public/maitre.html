@@ -14,6 +14,11 @@
     <button onclick="askTiming()">Demander le timing</button>
     <ul id="responses"></ul>
 
+    <div id="history" style="position: fixed; bottom: 10px; right: 10px; width: 300px; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; font-size: 14px;">
+        <strong>Historique des MAJ :</strong>
+        <div id="log"></div>
+    </div>
+
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
         const socket = io();
@@ -51,11 +56,13 @@
             if (msg.timing === 'Disponible') {
                 timerSpan.textContent = 'Disponible';
                 li.style.color = 'blue';
-                responses[msg.name] = { li, interval: null };
+                responses[msg.name] = { li, interval: null, remaining: 0 };
+                logReception(msg.name, msg.timing);
+                sortResponses();
                 return;
             }
 
-            let remaining = timingMap[msg.timing];
+            let remaining = timingMap[msg.timing] || 999999;
             const updateColor = () => {
                 if (remaining <= 0) {
                     li.style.color = 'blue';
@@ -94,24 +101,35 @@
         function sortResponses() {
             const ul = document.getElementById('responses');
             const items = Object.values(responses)
-                .sort((a, b) => (b.remaining || 0) - (a.remaining || 0))
+                .sort((a, b) => (a.remaining || 999999) - (b.remaining || 999999))
                 .map(item => item.li);
             ul.innerHTML = '';
             items.forEach(li => ul.appendChild(li));
         }
+
+        function logReception(name, timing) {
+            showNotificationFrom(name, timing);
+            const log = document.getElementById('log');
+            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const entry = document.createElement('div');
+            entry.textContent = `MAJ ${name} à ${now}`;
+            log.prepend(entry);
+        }
+
+        function showNotificationFrom(name, timing) {
+            if (Notification.permission === "granted") {
+                new Notification("Réponse reçue", {
+                    body: `${name} a répondu : ${timing}`,
+                    icon: "orange-logo.png"
+                });
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        showNotificationFrom(name, timing);
+                    }
+                });
+            }
+        }
     </script>
-
-<div id="log" style="margin-top: 20px; font-style: italic;"></div>
-
-<script>
-    function logReception(name, timing) {
-        const log = document.getElementById('log');
-        const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        const entry = document.createElement('div');
-        entry.textContent = `Réponse de ${name} ("${timing}") reçue à ${now}`;
-        log.appendChild(entry);
-    }
-</script>
-
 </body>
 </html>
