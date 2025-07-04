@@ -16,7 +16,7 @@
     </style>
 </head>
 <body>
-    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.011</div>
+    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.012</div>
     <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Agent d’accueil</h1>
     <button onclick="askTiming()">Demander le timing</button>
@@ -28,33 +28,27 @@
         <div id="log"></div>
     </div>
 
-    
-<div style="margin-top: 40px; padding: 10px; border: 1px solid #ccc; max-width: 600px;">
-    <h3>📌 Journal des mises à jour</h3>
-    <ul>
-        <li><strong>v1.011</strong> : Sauvegarde serveur des réponses, journal externe (News.html)</li>
-        <li><strong>v1.010</strong> : Suppression surlignage 10min, affichage journal sur accueil, correction logo</li>
-        <li><strong>v1.009</strong> : Bouton ✖ pour supprimer, tri automatique, affichage version</li>
-        <li><strong>v1.008</strong> : Affichage temps + couleurs dynamiques, historique, version visible</li>
-        <li><strong>v1.007</strong> : Version stable, logo Orange, tri par temps</li>
-    </ul>
-</div>
-
-
     <audio id="chatSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
 
     <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
     <script>
         const socket = io();
         const responses = {};
+
         const timingMap = {
-            '2 min': 120, '5 min': 300, '10 min': 600,
-            '20 min': 1200, '30 min': 1800, '45 min': 2700
+            '2 min': 120,
+            '5 min': 300,
+            '10 min': 600,
+            '20 min': 1200,
+            '30 min': 1800,
+            '45 min': 2700,
+            'RETARD RDV': 0,
+            'Disponible': 0
         };
 
         socket.emit('register', { role: 'accueil', name: 'Accueil' });
         socket.on('storedResponses', (list) => {
-            list.forEach(msg => renderResponse(msg));
+            list.forEach(msg => renderResponse(msg, true));
         });
 
         function askTiming() {
@@ -63,10 +57,10 @@
         }
 
         socket.on('response', (msg) => {
-            renderResponse(msg);
+            renderResponse(msg, false);
         });
 
-        function renderResponse(msg) {
+        function renderResponse(msg, isFromMemory) {
             if (responses[msg.name]) {
                 clearInterval(responses[msg.name].interval);
                 responses[msg.name].li.remove();
@@ -90,16 +84,16 @@
             li.appendChild(suppr);
             ul.appendChild(li);
 
-            if (msg.timing === 'Disponible') {
-                timerSpan.textContent = 'Disponible';
-                li.style.color = 'blue';
+            if (msg.timing === 'Disponible' || msg.timing === 'RETARD RDV') {
+                timerSpan.textContent = msg.timing;
+                li.style.color = msg.timing === 'Disponible' ? 'blue' : 'gray';
                 responses[msg.name] = { li, interval: null, remaining: 0 };
                 logReception(msg.name, msg.timing);
                 sortResponses();
                 return;
             }
 
-            let remaining = timingMap[msg.timing] || 999999;
+            let remaining = msg.remaining;
             const interval = setInterval(() => {
                 if (remaining <= 0) {
                     timerSpan.textContent = 'Terminé';
@@ -134,7 +128,7 @@
             const log = document.getElementById('log');
             const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const entry = document.createElement('div');
-            entry.textContent = `MAJ ${name} à ${now}`;
+            entry.textContent = `MAJ ${name} : ${timing} à ${now}`;
             log.prepend(entry);
         }
 

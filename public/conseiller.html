@@ -7,32 +7,40 @@
         body { font-family: Arial, sans-serif; padding: 20px; }
         .btn {
             padding: 10px 20px;
-            margin: 8px;
+            margin: 10px;
             font-size: 16px;
-            border: none;
+            border: 2px solid black;
             border-radius: 8px;
             cursor: pointer;
             color: white;
+            display: inline-block;
+            width: 160px;
+            text-align: center;
         }
         .btn.green { background-color: #28a745; }
         .btn.orange { background-color: #fd7e14; }
         .btn.red { background-color: #dc3545; }
         .btn.blue { background-color: #007bff; }
-        .btn:hover { opacity: 0.9; }
+        .btn.gray { background-color: #6c757d; }
+        .row { display: flex; justify-content: flex-start; flex-wrap: wrap; max-width: 540px; }
     </style>
 </head>
 <body>
-    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.011</div>
+    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.012</div>
     <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Conseiller</h1>
     <input type="text" id="name" placeholder="Votre prénom"><br><br>
-    <button class="btn green" onclick="sendTiming('2 min')">2 minutes</button>
-    <button class="btn green" onclick="sendTiming('5 min')">5 minutes</button>
-    <button class="btn orange" onclick="sendTiming('10 min')">10 minutes</button>
-    <button class="btn orange" onclick="sendTiming('20 min')">20 minutes</button>
-    <button class="btn red" onclick="sendTiming('30 min')">30 minutes</button>
-    <button class="btn red" onclick="sendTiming('45 min')">45 minutes</button>
-    <button class="btn blue" onclick="sendTiming('Disponible')">Disponible</button>
+
+    <div class="row">
+        <button class="btn green" onclick="sendTiming('2 min')">2 minutes</button>
+        <button class="btn green" onclick="sendTiming('5 min')">5 minutes</button>
+        <button class="btn orange" onclick="sendTiming('10 min')">10 minutes</button>
+        <button class="btn orange" onclick="sendTiming('20 min')">20 minutes</button>
+        <button class="btn red" onclick="sendTiming('30 min')">30 minutes</button>
+        <button class="btn red" onclick="sendTiming('45 min')">45 minutes</button>
+        <button class="btn blue" onclick="sendTiming('Disponible')">Disponible</button>
+        <button class="btn gray" onclick="sendTiming('RETARD RDV')">RETARD RDV</button>
+    </div>
 
     <div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
     <audio id="alertSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
