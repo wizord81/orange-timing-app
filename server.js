@@ -2,27 +2,25 @@ const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
 const io = require('socket.io')(http);
-
 const path = require('path');
 const PORT = process.env.PORT || 3000;
 
-// Stockage temporaire en mémoire
 let lastResponses = {};
 
 app.use(express.static(path.join(__dirname, 'public')));
 
 io.on('connection', (socket) => {
-    let currentUser = null;
-
     socket.on('register', (data) => {
-        currentUser = data;
-        socket.role = data.role;
-        socket.name = data.name;
-
         if (data.role === 'accueil') {
-            // Envoie toutes les dernières réponses à l'accueil nouvellement connecté
             const stored = Object.values(lastResponses);
-            socket.emit('storedResponses', stored);
+            const now = Date.now();
+            const timed = stored.map(r => {
+                const elapsed = Math.floor((now - r.timestamp) / 1000);
+                const total = r.duration || 0;
+                const remaining = Math.max(0, total - elapsed);
+                return { ...r, remaining };
+            });
+            socket.emit('storedResponses', timed);
         }
     });
 
@@ -31,16 +29,22 @@ io.on('connection', (socket) => {
     });
 
     socket.on('response', (msg) => {
+        const map = {
+            '2 min': 120, '5 min': 300, '10 min': 600,
+            '20 min': 1200, '30 min': 1800, '45 min': 2700
+        };
+        const duration = map[msg.timing] || 0;
         lastResponses[msg.name] = {
             name: msg.name,
             timing: msg.timing,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            duration
         };
-        io.emit('response', msg);
-    });
-
-    socket.on('disconnect', () => {
-        // Déconnexion silencieuse, on garde les réponses
+        io.emit('response', {
+            name: msg.name,
+            timing: msg.timing,
+            remaining: duration
+        });
     });
 });
 
