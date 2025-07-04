@@ -16,7 +16,7 @@
     </style>
 </head>
 <body>
-    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.012</div>
+    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.013</div>
     <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Agent d’accueil</h1>
     <button onclick="askTiming()">Demander le timing</button>
@@ -52,7 +52,6 @@
         });
 
         function askTiming() {
-            document.getElementById('responses').innerHTML = '';
             socket.emit('askTiming');
         }
 
