@@ -1,3 +1,14 @@
+<!--
+Mise à jour v1.010
+Déployée le 04/07/2025 à 11:33:51
+Modifications :
+- Suppression du surlignage rouge après 10 min
+- Ajout d’un historique des versions visible sur la page accueil
+- Suppression de la page supervision
+- Correction du logo Orange (orange-logo.png depuis dossier public)
+- Préparation à la persistance serveur des réponses (à venir)
+-->
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -17,7 +28,7 @@
     </style>
 </head>
 <body>
-    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.009</div>
+    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.010</div>
     <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Agent d’accueil</h1>
     <button onclick="askTiming()">Demander le timing</button>
@@ -28,6 +39,18 @@
         <strong>Historique des MAJ :</strong>
         <div id="log"></div>
     </div>
+
+    
+<div style="margin-top: 40px; padding: 10px; border: 1px solid #ccc; max-width: 600px;">
+    <h3>📌 Journal des mises à jour</h3>
+    <ul>
+        <li><strong>v1.010</strong> : Suppression du surlignage rouge + historique visible + correction logo</li>
+        <li><strong>v1.009</strong> : Bouton supprimer, supervision (supprimée maintenant)</li>
+        <li><strong>v1.008</strong> : Historique élargi, surlignage rouge (désactivé), tri intelligent</li>
+        <li><strong>v1.007</strong> : Numéro de version affiché</li>
+    </ul>
+</div>
+
 
     <audio id="chatSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
 
@@ -74,7 +97,6 @@
             if (msg.timing === 'Disponible') {
                 timerSpan.textContent = 'Disponible';
                 li.style.color = 'blue';
-                li.style.backgroundColor = '';
                 responses[msg.name] = { li, interval: null, remaining: 0 };
                 logReception(msg.name, msg.timing);
                 sortResponses();
@@ -86,7 +108,6 @@
                 if (remaining <= 0) {
                     timerSpan.textContent = 'Terminé';
                     li.style.color = 'blue';
-                    li.style.backgroundColor = '';
                     clearInterval(interval);
                     sortResponses();
                 } else {
@@ -94,7 +115,6 @@
                     const seconds = remaining % 60;
                     timerSpan.textContent = `reste ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
                     li.style.color = remaining <= 300 ? 'green' : remaining <= 600 ? 'orange' : remaining <= 1800 ? 'red' : 'purple';
-                    li.style.backgroundColor = remaining > 600 ? '#ffcccc' : '';
                     remaining--;
                 }
             }, 1000);
