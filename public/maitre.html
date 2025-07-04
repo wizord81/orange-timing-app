@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Accueil</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        li.terminated { background-color: #cce5ff; }
+    </style>
+</head>
+<body>
+    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
+    <h1>Agent d’accueil</h1>
+    <button onclick="askTiming()">Demander le timing</button>
+    <button onclick="refreshView()">🔄 Refresh affichage</button>
+    <ul id="responses"></ul>
+
+    <div id="history" style="position: fixed; bottom: 10px; right: 10px; width: 300px; max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; font-size: 14px;">
+        <strong>Historique des MAJ :</strong>
+        <div id="log"></div>
+    </div>
+
+    <audio id="chatSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
+
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const responses = {};
+        const timingMap = {
+            '2 min': 2 * 60, '5 min': 5 * 60, '10 min': 10 * 60,
+            '20 min': 20 * 60, '30 min': 30 * 60, '45 min': 45 * 60
+        };
+
+        socket.emit('register', { role: 'accueil', name: 'Accueil' });
+
+        function askTiming() {
+            document.getElementById('responses').innerHTML = '';
+            socket.emit('askTiming');
+        }
+
+        function refreshView() {
+            document.getElementById('responses').innerHTML = '';
+            Object.values(responses).forEach(obj => {
+                if (obj.li) document.getElementById('responses').appendChild(obj.li);
+            });
+            sortResponses();
+        }
+
+        socket.on('response', (msg) => {
+            if (responses[msg.name]) {
+                clearInterval(responses[msg.name].interval);
+                responses[msg.name].li.remove();
+            }
+
+            const ul = document.getElementById('responses');
+            const li = document.createElement('li');
+            const timerSpan = document.createElement('span');
+            li.appendChild(document.createTextNode(`${msg.name} : `));
+            li.appendChild(timerSpan);
+            ul.appendChild(li);
+
+            if (msg.timing === 'Disponible') {
+                timerSpan.textContent = 'Disponible';
+                li.style.color = 'blue';
+                responses[msg.name] = { li, interval: null, remaining: 0 };
+                logReception(msg.name, msg.timing);
+                sortResponses();
+                return;
+            }
+
+            let remaining = timingMap[msg.timing] || 999999;
+            const interval = setInterval(() => {
+                if (remaining <= 0) {
+                    timerSpan.textContent = 'Terminé';
+                    li.style.color = 'blue';
+                    clearInterval(interval);
+                    sortResponses();
+                } else {
+                    const minutes = Math.floor(remaining / 60);
+                    const seconds = remaining % 60;
+                    timerSpan.textContent = `reste ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    li.style.color = remaining <= 300 ? 'green' : remaining <= 600 ? 'orange' : remaining <= 1800 ? 'red' : 'purple';
+                    remaining--;
+                }
+            }, 1000);
+
+            responses[msg.name] = { li, interval, remaining };
+            logReception(msg.name, msg.timing);
+            sortResponses();
+        });
+
+        function sortResponses() {
+            const ul = document.getElementById('responses');
+            const items = Object.values(responses)
+                .sort((a, b) => (a.remaining || 999999) - (b.remaining || 999999))
+                .map(item => item.li);
+            ul.innerHTML = '';
+            items.forEach(li => ul.appendChild(li));
+        }
+
+        function logReception(name, timing) {
+            playSound();
+            const log = document.getElementById('log');
+            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const entry = document.createElement('div');
+            entry.textContent = `MAJ ${name} à ${now}`;
+            log.prepend(entry);
+        }
+
+        function playSound() {
+            const sound = document.getElementById('chatSound');
+            sound.play().catch(() => {});
+        }
+    </script>
+</body>
+</html>
