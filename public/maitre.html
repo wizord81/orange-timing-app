@@ -1,14 +1,3 @@
-<!--
-Mise à jour v1.010
-Déployée le 04/07/2025 à 11:33:51
-Modifications :
-- Suppression du surlignage rouge après 10 min
-- Ajout d’un historique des versions visible sur la page accueil
-- Suppression de la page supervision
-- Correction du logo Orange (orange-logo.png depuis dossier public)
-- Préparation à la persistance serveur des réponses (à venir)
--->
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -16,7 +5,6 @@ Modifications :
     <title>Accueil</title>
     <style>
         body { font-family: Arial; padding: 20px; }
-        li.terminated { background-color: #cce5ff; }
         button.supprBtn {
             margin-left: 10px;
             background-color: #ccc;
@@ -28,7 +16,7 @@ Modifications :
     </style>
 </head>
 <body>
-    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.010</div>
+    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.011</div>
     <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
     <h1>Agent d’accueil</h1>
     <button onclick="askTiming()">Demander le timing</button>
@@ -44,10 +32,11 @@ Modifications :
 <div style="margin-top: 40px; padding: 10px; border: 1px solid #ccc; max-width: 600px;">
     <h3>📌 Journal des mises à jour</h3>
     <ul>
-        <li><strong>v1.010</strong> : Suppression du surlignage rouge + historique visible + correction logo</li>
-        <li><strong>v1.009</strong> : Bouton supprimer, supervision (supprimée maintenant)</li>
-        <li><strong>v1.008</strong> : Historique élargi, surlignage rouge (désactivé), tri intelligent</li>
-        <li><strong>v1.007</strong> : Numéro de version affiché</li>
+        <li><strong>v1.011</strong> : Sauvegarde serveur des réponses, journal externe (News.html)</li>
+        <li><strong>v1.010</strong> : Suppression surlignage 10min, affichage journal sur accueil, correction logo</li>
+        <li><strong>v1.009</strong> : Bouton ✖ pour supprimer, tri automatique, affichage version</li>
+        <li><strong>v1.008</strong> : Affichage temps + couleurs dynamiques, historique, version visible</li>
+        <li><strong>v1.007</strong> : Version stable, logo Orange, tri par temps</li>
     </ul>
 </div>
 
@@ -64,6 +53,9 @@ Modifications :
         };
 
         socket.emit('register', { role: 'accueil', name: 'Accueil' });
+        socket.on('storedResponses', (list) => {
+            list.forEach(msg => renderResponse(msg));
+        });
 
         function askTiming() {
             document.getElementById('responses').innerHTML = '';
@@ -71,6 +63,10 @@ Modifications :
         }
 
         socket.on('response', (msg) => {
+            renderResponse(msg);
+        });
+
+        function renderResponse(msg) {
             if (responses[msg.name]) {
                 clearInterval(responses[msg.name].interval);
                 responses[msg.name].li.remove();
@@ -122,7 +118,7 @@ Modifications :
             responses[msg.name] = { li, interval, remaining };
             logReception(msg.name, msg.timing);
             sortResponses();
-        });
+        }
 
         function sortResponses() {
             const ul = document.getElementById('responses');
