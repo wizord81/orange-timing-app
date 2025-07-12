@@ -1,140 +1,94 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Accueil</title>
-    <style>
-        body { font-family: Arial; padding: 20px; }
-        button.supprBtn {
-            margin-left: 10px;
-            background-color: #ccc;
-            border: none;
-            padding: 2px 6px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Accueil</title>
+<style>
+body { font-family: Arial; padding: 20px; }
+button.supprBtn { margin-left: 10px; background-color: #ccc; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
+#pauseContainer { position: fixed; top: 200px; right: 10px; width: 200px; max-height: 200px; overflow-y: auto; border: 2px solid red; padding: 10px; background: #ffe5e5; font-size: 14px; }
+</style>
 </head>
 <body>
-    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.013</div>
-    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
-    <h1>Agent d’accueil</h1>
-    <button onclick="askTiming()">Demander le timing</button>
+<div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.014</div>
+<img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
+<h1>Agent d’accueil</h1>
+<button onclick="askTiming()">Demander le timing</button>
+<ul id="responses"></ul>
+<div id="pauseContainer"><strong>En pause :</strong><div id="pauseList"></div></div>
+<audio id="chatSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script>
+const socket = io();
+const responses = {}, pauseResponses = {};
+const timingMap = { '2 min':120,'5 min':300,'10 min':600,'20 min':1200,'30 min':1800,'45 min':2700 };
 
-    <ul id="responses"></ul>
+socket.emit('register', {role:'accueil', name:'Accueil'});
+socket.on('storedResponses', list => list.forEach(msg => handleMsg(msg)));
+socket.on('response', msg => handleMsg(msg));
+socket.on('deleteResponse', name => {
+    if(responses[name]){ clearInterval(responses[name].interval); responses[name].li.remove(); delete responses[name]; }
+    if(pauseResponses[name]){ clearInterval(pauseResponses[name].interval); pauseResponses[name].li.remove(); delete pauseResponses[name]; }
+});
 
-    <div id="history" style="position: fixed; bottom: 10px; right: 10px; width: 350px; max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; font-size: 14px;">
-        <strong>Historique des MAJ :</strong>
-        <div id="log"></div>
-    </div>
+function askTiming() { socket.emit('askTiming'); }
 
-    <audio id="chatSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
-
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <script>
-        const socket = io();
-        const responses = {};
-
-        const timingMap = {
-            '2 min': 120,
-            '5 min': 300,
-            '10 min': 600,
-            '20 min': 1200,
-            '30 min': 1800,
-            '45 min': 2700,
-            'RETARD RDV': 0,
-            'Disponible': 0
-        };
-
-        socket.emit('register', { role: 'accueil', name: 'Accueil' });
-        socket.on('storedResponses', (list) => {
-            list.forEach(msg => renderResponse(msg, true));
-        });
-
-        function askTiming() {
-            socket.emit('askTiming');
+function handleMsg(msg) {
+    if(msg.timing==='PAUSE') return renderPause(msg);
+    if(responses[msg.name]) { clearInterval(responses[msg.name].interval); responses[msg.name].li.remove(); }
+    const ul = document.getElementById('responses');
+    const li = document.createElement('li');
+    const span = document.createElement('span');
+    const sup = document.createElement('button');
+    sup.textContent='✖'; sup.className='supprBtn';
+    sup.onclick=()=>socket.emit('deleteResponse',{name:msg.name});
+    li.append(msg.name+' : ', span, sup);
+    ul.append(li);
+    if(!timingMap[msg.timing]) {
+        span.textContent=msg.timing;
+        li.style.color = msg.timing==='Disponible'?'blue':'gray';
+        responses[msg.name]={li, interval:null, remaining:0};
+        sortResponses();
+        return;
+    }
+    let rem = msg.remaining;
+    const iv = setInterval(() => {
+        if(rem<=0) { clearInterval(iv); li.remove(); delete responses[msg.name]; }
+        else {
+            const m=Math.floor(rem/60), s=rem%60;
+            span.textContent = `reste ${m}:${s<10?'0'+s:s}`;
+            li.style.color = rem<=300?'green':rem<=600?'orange':rem<=1800?'red':'purple';
+            rem--;
         }
+    },1000);
+    responses[msg.name] = {li, interval: iv, remaining: rem};
+    sortResponses();
+}
 
-        socket.on('response', (msg) => {
-            renderResponse(msg, false);
-        });
+function sortResponses() {
+    const ul = document.getElementById('responses');
+    ul.innerHTML='';
+    Object.values(responses).sort((a,b)=>(a.remaining||0)-(b.remaining||0)).forEach(o=>ul.append(o.li));
+}
 
-        function renderResponse(msg, isFromMemory) {
-            if (responses[msg.name]) {
-                clearInterval(responses[msg.name].interval);
-                responses[msg.name].li.remove();
-            }
-
-            const ul = document.getElementById('responses');
-            const li = document.createElement('li');
-            const timerSpan = document.createElement('span');
-            const suppr = document.createElement('button');
-            suppr.textContent = "✖";
-            suppr.className = "supprBtn";
-            suppr.onclick = () => {
-                if (confirm("Supprimer cette ligne ?")) {
-                    li.remove();
-                    delete responses[msg.name];
-                }
-            };
-
-            li.appendChild(document.createTextNode(`${msg.name} : `));
-            li.appendChild(timerSpan);
-            li.appendChild(suppr);
-            ul.appendChild(li);
-
-            if (msg.timing === 'Disponible' || msg.timing === 'RETARD RDV') {
-                timerSpan.textContent = msg.timing;
-                li.style.color = msg.timing === 'Disponible' ? 'blue' : 'gray';
-                responses[msg.name] = { li, interval: null, remaining: 0 };
-                logReception(msg.name, msg.timing);
-                sortResponses();
-                return;
-            }
-
-            let remaining = msg.remaining;
-            const interval = setInterval(() => {
-                if (remaining <= 0) {
-                    timerSpan.textContent = 'Terminé';
-                    li.style.color = 'blue';
-                    clearInterval(interval);
-                    sortResponses();
-                } else {
-                    const minutes = Math.floor(remaining / 60);
-                    const seconds = remaining % 60;
-                    timerSpan.textContent = `reste ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                    li.style.color = remaining <= 300 ? 'green' : remaining <= 600 ? 'orange' : remaining <= 1800 ? 'red' : 'purple';
-                    remaining--;
-                }
-            }, 1000);
-
-            responses[msg.name] = { li, interval, remaining };
-            logReception(msg.name, msg.timing);
-            sortResponses();
-        }
-
-        function sortResponses() {
-            const ul = document.getElementById('responses');
-            const items = Object.values(responses)
-                .sort((a, b) => (a.remaining || 999999) - (b.remaining || 999999))
-                .map(item => item.li);
-            ul.innerHTML = '';
-            items.forEach(li => ul.appendChild(li));
-        }
-
-        function logReception(name, timing) {
-            playSound();
-            const log = document.getElementById('log');
-            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const entry = document.createElement('div');
-            entry.textContent = `MAJ ${name} : ${timing} à ${now}`;
-            log.prepend(entry);
-        }
-
-        function playSound() {
-            const sound = document.getElementById('chatSound');
-            sound.play().catch(() => {});
-        }
-    </script>
+function renderPause(msg) {
+    if(pauseResponses[msg.name]){ clearInterval(pauseResponses[msg.name].interval); pauseResponses[msg.name].li.remove(); }
+    const pc = document.getElementById('pauseList');
+    const div = document.createElement('div');
+    const span = document.createElement('span');
+    const sup = document.createElement('button');
+    sup.textContent='✖'; sup.className='supprBtn';
+    sup.onclick=()=>socket.emit('deleteResponse',{name:msg.name});
+    div.style.border='1px solid red'; div.style.margin='5px 0'; div.style.padding='5px';
+    const iv = setInterval(() => {
+        const diff = Math.floor((Date.now()-msg.timestamp)/1000);
+        const m = Math.floor(diff/60), s = diff%60;
+        span.textContent = ` ${m}:${s<10?'0'+s:s}`;
+    },1000);
+    div.append(msg.name, span, sup);
+    pc.append(div);
+    pauseResponses[msg.name] = {li:div, interval: iv};
+}
+</script>
 </body>
 </html>

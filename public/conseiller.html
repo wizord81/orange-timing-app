@@ -1,92 +1,45 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Conseiller</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .btn {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 16px;
-            border: 2px solid black;
-            border-radius: 8px;
-            cursor: pointer;
-            color: white;
-            display: inline-block;
-            width: 160px;
-            text-align: center;
-        }
-        .btn.green { background-color: #28a745; }
-        .btn.orange { background-color: #fd7e14; }
-        .btn.red { background-color: #dc3545; }
-        .btn.blue { background-color: #007bff; }
-        .btn.gray { background-color: #6c757d; }
-        .row { display: flex; justify-content: flex-start; flex-wrap: wrap; max-width: 540px; }
-    </style>
-</head>
-<body>
-    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.013</div>
-    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
-    <h1>Conseiller</h1>
-    <input type="text" id="name" placeholder="Votre prénom"><br><br>
-
-    <div class="row">
-        <button class="btn green" onclick="sendTiming('2 min')">2 minutes</button>
-        <button class="btn green" onclick="sendTiming('5 min')">5 minutes</button>
-        <button class="btn orange" onclick="sendTiming('10 min')">10 minutes</button>
-        <button class="btn orange" onclick="sendTiming('20 min')">20 minutes</button>
-        <button class="btn red" onclick="sendTiming('30 min')">30 minutes</button>
-        <button class="btn red" onclick="sendTiming('45 min')">45 minutes</button>
-        <button class="btn blue" onclick="sendTiming('Disponible')">Disponible</button>
-        <button class="btn gray" onclick="sendTiming('RETARD RDV')">RETARD RDV</button>
-    </div>
-
-    <div id="confirmation" style="margin-top: 20px; font-weight: bold; color: green;"></div>
-    <audio id="alertSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
-
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <script>
-        const socket = io();
-        let userName = '';
-
-        function sendTiming(timing) {
-            userName = document.getElementById('name').value.trim() || "Anonyme";
-            socket.emit('register', { role: 'conseiller', name: userName });
-            socket.emit('response', { name: userName, timing });
-            showConfirmation(timing);
-        }
-
-        function showConfirmation(timing) {
-            const confirmation = document.getElementById('confirmation');
-            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            confirmation.textContent = `Réponse "${timing}" envoyée à ${now}`;
-        }
-
-        socket.on('askTiming', () => {
-            playAlert();
-            showNotification();
-        });
-
-        function playAlert() {
-            const audio = document.getElementById('alertSound');
-            audio.play().catch(() => {});
-        }
-
-        function showNotification() {
-            if (Notification.permission === "granted") {
-                new Notification("Demande de l'agent d'accueil", {
-                    body: "Merci d’indiquer votre timing.",
-                    icon: "orange-logo.png"
-                });
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        showNotification();
-                    }
-                });
-            }
-        }
-    </script>
-</body>
-</html>
+<head><meta charset="UTF-8"><title>Conseiller</title><style>
+body {font-family:Arial; padding:20px;}
+.btn {padding:10px 20px; margin:10px; font-size:16px; border:2px solid black; border-radius:8px; cursor:pointer; color:white; display:inline-block; width:160px; text-align:center;}
+.green{background:#28a745} .orange{background:#fd7e14} .red{background:#dc3545} .blue{background:#007bff} .gray{background:#6c757d} .purple{background:#6f42c1}
+.row{display:flex; flex-wrap:wrap; max-width:520px;}
+</style></head><body>
+<div style="position:fixed; top:10px; left:10px; font-style:italic; font-size:14px;">v1.014</div>
+<img src="orange-logo.png" alt="Logo Orange" style="height:50px;">
+<h1>Conseiller</h1><input type="text" id="name" placeholder="Votre prénom"><br><br>
+<div class="row">
+<button class="btn green" onclick="sendTiming('2 min')">2 minutes</button>
+<button class="btn green" onclick="sendTiming('5 min')">5 minutes</button>
+<button class="btn orange" onclick="sendTiming('10 min')">10 minutes</button>
+<button class="btn orange" onclick="sendTiming('20 min')">20 minutes</button>
+<button class="btn red" onclick="sendTiming('30 min')">30 minutes</button>
+<button class="btn red" onclick="sendTiming('45 min')">45 minutes</button>
+<button class="btn blue" onclick="sendTiming('Disponible')">Disponible</button>
+<button class="btn gray" onclick="sendTiming('EN RENDEZ-VOUS')">EN RENDEZ-VOUS</button>
+<button class="btn purple" onclick="sendTiming('OCCUPÉ')">OCCUPÉ</button>
+<button class="btn red" onclick="sendTiming('PAUSE')">PAUSE</button>
+</div>
+<div id="confirmation" style="margin-top:20px; font-weight:bold; color:green;"></div>
+<div id="ownTimer" style="margin-top:10px; font-weight:bold;"></div>
+<audio id="alertSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
+<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+<script>
+const socket = io();
+const map = {'2 min':120,'5 min':300,'10 min':600,'20 min':1200,'30 min':1800,'45 min':2700};
+let userName='', ownIv;
+function sendTiming(t) {
+    userName = document.getElementById('name').value.trim() || 'Anonyme';
+    socket.emit('register',{role:'conseiller',name:userName});
+    socket.emit('response',{name:userName,timing:t});
+    document.getElementById('confirmation').textContent = `Réponse "${t}" envoyée à ${new Date().toLocaleTimeString('fr-FR')}`;
+    clearInterval(ownIv);
+    if(map[t]){
+      let rem=map[t], sp=document.getElementById('ownTimer');
+      ownIv=setInterval(()=>{ if(rem<=0){ sp.textContent='Terminé'; clearInterval(ownIv);} else{ let m=Math.floor(rem/60),s=rem%60; sp.textContent=`reste ${m}:${s<10?'0'+s:s}`; rem--;}},1000);
+    }
+}
+socket.on('askTiming',()=>{ document.getElementById('alertSound').play().catch(()=>{}); if(Notification.permission==='granted') new Notification("Demande de l'accueil",{body:"Merci d’indiquer votre timing.",icon:"orange-logo.png"}); });
+</script>
+</body></html>
