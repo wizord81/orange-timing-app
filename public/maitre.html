@@ -1,94 +1,71 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<title>Accueil</title>
-<style>
-body { font-family: Arial; padding: 20px; }
-button.supprBtn { margin-left: 10px; background-color: #ccc; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer; }
-#pauseContainer { position: fixed; top: 200px; right: 10px; width: 200px; max-height: 200px; overflow-y: auto; border: 2px solid red; padding: 10px; background: #ffe5e5; font-size: 14px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Accueil - Gestion conseillers & clients</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .version { font-style: italic; position: absolute; top: 5px; left: 10px; }
+    .clients-container { position: absolute; top: 50px; right: 20px; width: 300px; border: 2px solid #000; padding: 10px; border-radius: 8px; background: #f9f9f9; }
+    .client-entry { display: flex; justify-content: space-between; align-items: center; padding: 5px; margin-bottom: 5px; border-bottom: 1px solid #ccc; }
+    .client-entry span { font-weight: bold; }
+    .delete-btn { color: red; cursor: pointer; font-weight: bold; }
+    .orange { color: orange; }
+    .red { color: red; }
+  </style>
 </head>
 <body>
-<div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.014</div>
-<img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
-<h1>Agent d’accueil</h1>
-<button onclick="askTiming()">Demander le timing</button>
-<ul id="responses"></ul>
-<div id="pauseContainer"><strong>En pause :</strong><div id="pauseList"></div></div>
-<audio id="chatSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
-<script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-<script>
-const socket = io();
-const responses = {}, pauseResponses = {};
-const timingMap = { '2 min':120,'5 min':300,'10 min':600,'20 min':1200,'30 min':1800,'45 min':2700 };
+  <div class="version">v1.010</div>
+  <h1>Poste Accueil</h1>
 
-socket.emit('register', {role:'accueil', name:'Accueil'});
-socket.on('storedResponses', list => list.forEach(msg => handleMsg(msg)));
-socket.on('response', msg => handleMsg(msg));
-socket.on('deleteResponse', name => {
-    if(responses[name]){ clearInterval(responses[name].interval); responses[name].li.remove(); delete responses[name]; }
-    if(pauseResponses[name]){ clearInterval(pauseResponses[name].interval); pauseResponses[name].li.remove(); delete pauseResponses[name]; }
-});
+  <h2>Ajouter un client</h2>
+  <form id="clientForm">
+    <input type="text" id="clientName" placeholder="Nom du client" required>
+    <br><br>
+    <textarea id="clientReason" placeholder="Objet de la visite"></textarea>
+    <br><br>
+    <button type="submit">Ajouter</button>
+  </form>
 
-function askTiming() { socket.emit('askTiming'); }
+  <div class="clients-container">
+    <h3>Liste des clients en attente</h3>
+    <div id="clientList"></div>
+  </div>
 
-function handleMsg(msg) {
-    if(msg.timing==='PAUSE') return renderPause(msg);
-    if(responses[msg.name]) { clearInterval(responses[msg.name].interval); responses[msg.name].li.remove(); }
-    const ul = document.getElementById('responses');
-    const li = document.createElement('li');
-    const span = document.createElement('span');
-    const sup = document.createElement('button');
-    sup.textContent='✖'; sup.className='supprBtn';
-    sup.onclick=()=>socket.emit('deleteResponse',{name:msg.name});
-    li.append(msg.name+' : ', span, sup);
-    ul.append(li);
-    if(!timingMap[msg.timing]) {
-        span.textContent=msg.timing;
-        li.style.color = msg.timing==='Disponible'?'blue':'gray';
-        responses[msg.name]={li, interval:null, remaining:0};
-        sortResponses();
-        return;
+  <script>
+    const socket = io();
+    const clientForm = document.getElementById('clientForm');
+    const clientList = document.getElementById('clientList');
+
+    clientForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = document.getElementById('clientName').value.trim();
+      const reason = document.getElementById('clientReason').value.trim();
+      if (!name) return;
+      const client = { id: Date.now(), name, reason, timestamp: Date.now() };
+      socket.emit('addClient', client);
+      document.getElementById('clientName').value = '';
+      document.getElementById('clientReason').value = '';
+    });
+
+    socket.on('updateClients', serverClients => {
+      clientList.innerHTML = '';
+      serverClients.forEach(c => {
+        const elapsed = Math.floor((Date.now() - c.timestamp) / 60000);
+        let colorClass = '';
+        if (elapsed >= 10) colorClass = 'red';
+        else if (elapsed >= 0) colorClass = 'orange';
+        const div = document.createElement('div');
+        div.className = 'client-entry';
+        div.innerHTML = `<span>${c.name}</span> <span class="${colorClass}">${elapsed} min</span> <span class="delete-btn" onclick="removeClient(${c.id})">✖</span>`;
+        clientList.appendChild(div);
+      });
+    });
+
+    function removeClient(id) {
+      socket.emit('removeClient', id);
     }
-    let rem = msg.remaining;
-    const iv = setInterval(() => {
-        if(rem<=0) { clearInterval(iv); li.remove(); delete responses[msg.name]; }
-        else {
-            const m=Math.floor(rem/60), s=rem%60;
-            span.textContent = `reste ${m}:${s<10?'0'+s:s}`;
-            li.style.color = rem<=300?'green':rem<=600?'orange':rem<=1800?'red':'purple';
-            rem--;
-        }
-    },1000);
-    responses[msg.name] = {li, interval: iv, remaining: rem};
-    sortResponses();
-}
-
-function sortResponses() {
-    const ul = document.getElementById('responses');
-    ul.innerHTML='';
-    Object.values(responses).sort((a,b)=>(a.remaining||0)-(b.remaining||0)).forEach(o=>ul.append(o.li));
-}
-
-function renderPause(msg) {
-    if(pauseResponses[msg.name]){ clearInterval(pauseResponses[msg.name].interval); pauseResponses[msg.name].li.remove(); }
-    const pc = document.getElementById('pauseList');
-    const div = document.createElement('div');
-    const span = document.createElement('span');
-    const sup = document.createElement('button');
-    sup.textContent='✖'; sup.className='supprBtn';
-    sup.onclick=()=>socket.emit('deleteResponse',{name:msg.name});
-    div.style.border='1px solid red'; div.style.margin='5px 0'; div.style.padding='5px';
-    const iv = setInterval(() => {
-        const diff = Math.floor((Date.now()-msg.timestamp)/1000);
-        const m = Math.floor(diff/60), s = diff%60;
-        span.textContent = ` ${m}:${s<10?'0'+s:s}`;
-    },1000);
-    div.append(msg.name, span, sup);
-    pc.append(div);
-    pauseResponses[msg.name] = {li:div, interval: iv};
-}
-</script>
+  </script>
 </body>
 </html>
