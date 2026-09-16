@@ -1,261 +1,140 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Accueil — Temps d'attente</title>
-<style>
-  :root {
-    --orange: #ff7900;
-    --texte: #1a1a1a;
-    --gris: #f4f4f4;
-    --bord: #dcdcdc;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    margin: 0; padding: 20px; color: var(--texte); background: #fff;
-  }
-  .page { max-width: 1000px; margin-inline: auto; }
-  header { display: flex; align-items: center; gap: 12px; }
-  header img { height: 42px; }
-  h1 { font-size: 22px; margin: 0; flex: 1; }
-  .statut { font-size: 13px; color: #777; margin: 4px 0 18px; }
-  .statut .pastille {
-    display: inline-block; width: 9px; height: 9px; border-radius: 50%;
-    background: #c62828; margin-right: 6px; vertical-align: middle;
-  }
-  .statut.ok .pastille { background: #2e7d32; }
-
-  .barre { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-  button.action {
-    padding: 14px 22px; font-size: 16px; font-weight: 600;
-    border: none; border-radius: 10px; cursor: pointer;
-  }
-  button.action.principal { background: var(--orange); color: #fff; }
-  button.action.secondaire { background: var(--gris); color: var(--texte); border: 1px solid var(--bord); }
-  button.action:hover { opacity: .9; }
-
-  .estimation {
-    background: #fff5eb; border: 1px solid #ffd2a6; border-radius: 12px;
-    padding: 18px 20px; margin-bottom: 22px;
-  }
-  .estimation .titre { font-size: 13px; color: #8a5a20; text-transform: uppercase; letter-spacing: .04em; }
-  .estimation .valeur { font-size: 34px; font-weight: 700; margin-top: 4px; }
-  .estimation .detail { font-size: 14px; color: #666; margin-top: 4px; }
-
-  .colonnes { display: grid; grid-template-columns: 1fr 300px; gap: 24px; align-items: start; }
-  @media (max-width: 800px) { .colonnes { grid-template-columns: 1fr; } }
-
-  table { width: 100%; border-collapse: collapse; }
-  th {
-    text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .04em;
-    color: #777; padding: 8px 10px; border-bottom: 2px solid var(--bord);
-  }
-  td { padding: 12px 10px; border-bottom: 1px solid var(--bord); font-size: 16px; }
-  tr.hors-ligne { opacity: .45; }
-  .nom { font-weight: 600; }
-  .reste { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; }
-  .vert { color: #2e7d32; }
-  .orange { color: #ef6c00; }
-  .rouge { color: #c62828; }
-  .violet { color: #6a1b9a; }
-  .bleu { color: #0066cc; }
-  .gris { color: #999; }
-  .supprimer {
-    background: none; border: none; color: #999; cursor: pointer; font-size: 18px; line-height: 1;
-  }
-  .supprimer:hover { color: #c62828; }
-  .vide { color: #888; font-style: italic; padding: 20px 10px; }
-
-  .journal {
-    border: 1px solid var(--bord); border-radius: 12px; padding: 14px; background: var(--gris);
-    font-size: 14px; max-height: 380px; overflow-y: auto;
-  }
-  .journal strong { display: block; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; color: #666; }
-  .journal div.ligne { padding: 4px 0; border-bottom: 1px solid #e4e4e4; }
-</style>
+    <meta charset="UTF-8">
+    <title>Accueil</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button.supprBtn {
+            margin-left: 10px;
+            background-color: #ccc;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-<div class="page">
+    <div style="position: fixed; top: 10px; left: 10px; font-style: italic; font-size: 14px;">v1.013</div>
+    <img src="orange-logo.png" alt="Logo Orange" style="height: 50px;">
+    <h1>Agent d’accueil</h1>
+    <button onclick="askTiming()">Demander le timing</button>
 
-  <header>
-    <img src="orange-logo.png" alt="Orange" onerror="this.style.display='none'">
-    <h1>Agent d'accueil</h1>
-  </header>
-  <div class="statut" id="statut"><span class="pastille"></span><span id="statutTexte">Connexion…</span></div>
+    <ul id="responses"></ul>
 
-  <div class="barre">
-    <button class="action principal" onclick="demanderTiming()">Demander le timing</button>
-    <button class="action secondaire" onclick="toutEffacer()">Tout effacer</button>
-  </div>
-
-  <div class="estimation">
-    <div class="titre">Temps d'attente prévisionnel</div>
-    <div class="valeur" id="estimValeur">—</div>
-    <div class="detail" id="estimDetail">En attente des réponses des conseillers.</div>
-  </div>
-
-  <div class="colonnes">
-    <div>
-      <table>
-        <thead>
-          <tr><th>Conseiller</th><th>Annoncé</th><th>Restant</th><th></th></tr>
-        </thead>
-        <tbody id="corps"></tbody>
-      </table>
-      <div class="vide" id="vide">Aucun conseiller connecté pour l'instant.</div>
+    <div id="history" style="position: fixed; bottom: 10px; right: 10px; width: 350px; max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; font-size: 14px;">
+        <strong>Historique des MAJ :</strong>
+        <div id="log"></div>
     </div>
 
-    <div class="journal">
-      <strong>Historique des mises à jour</strong>
-      <div id="journal"></div>
-    </div>
-  </div>
+    <audio id="chatSound" src="https://notificationsounds.com/storage/sounds/file-sounds-1150-pristine.mp3" preload="auto"></audio>
 
-</div>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const responses = {};
 
-<audio id="son" src="alert.mp3" preload="auto"></audio>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  let etat = [];
-  let decalage = 0; // écart entre l'horloge du serveur et celle du navigateur
+        const timingMap = {
+            '2 min': 120,
+            '5 min': 300,
+            '10 min': 600,
+            '20 min': 1200,
+            '30 min': 1800,
+            '45 min': 2700,
+            'RETARD RDV': 0,
+            'Disponible': 0
+        };
 
-  socket.on('connect', () => {
-    socket.emit('register', { role: 'accueil', name: 'Accueil' });
-    majStatut(true);
-  });
-  socket.on('disconnect', () => majStatut(false));
+        socket.emit('register', { role: 'accueil', name: 'Accueil' });
+        socket.on('storedResponses', (list) => {
+            list.forEach(msg => renderResponse(msg, true));
+        });
 
-  function majStatut(connecte) {
-    document.getElementById('statut').classList.toggle('ok', connecte);
-    document.getElementById('statutTexte').textContent =
-      connecte ? 'Connecté' : 'Hors ligne — reconnexion en cours…';
-  }
+        function askTiming() {
+            socket.emit('askTiming');
+        }
 
-  socket.on('state', (data) => {
-    decalage = data.now - Date.now();
-    etat = data.conseillers;
-    dessiner();
-  });
+        socket.on('response', (msg) => {
+            renderResponse(msg, false);
+        });
 
-  socket.on('maj', ({ name, timing }) => {
-    jouerSon();
-    const heure = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const ligne = document.createElement('div');
-    ligne.className = 'ligne';
-    ligne.textContent = heure + ' — ' + name + ' : ' + timing;
-    document.getElementById('journal').prepend(ligne);
-  });
+        function renderResponse(msg, isFromMemory) {
+            if (responses[msg.name]) {
+                clearInterval(responses[msg.name].interval);
+                responses[msg.name].li.remove();
+            }
 
-  function demanderTiming() { socket.emit('askTiming'); debloquerSon(); }
-  function toutEffacer() {
-    if (confirm('Effacer tous les conseillers de la liste ?')) socket.emit('resetAll');
-  }
-  function supprimer(id) { socket.emit('remove', { id }); }
+            const ul = document.getElementById('responses');
+            const li = document.createElement('li');
+            const timerSpan = document.createElement('span');
+            const suppr = document.createElement('button');
+            suppr.textContent = "✖";
+            suppr.className = "supprBtn";
+            suppr.onclick = () => {
+                if (confirm("Supprimer cette ligne ?")) {
+                    li.remove();
+                    delete responses[msg.name];
+                }
+            };
 
-  function resteSecondes(c) {
-    if (c.timing === 'Disponible') return 0;
-    if (!c.endsAt) return null;           // n'a encore rien annoncé
-    return Math.max(0, Math.round((c.endsAt - (Date.now() + decalage)) / 1000));
-  }
+            li.appendChild(document.createTextNode(`${msg.name} : `));
+            li.appendChild(timerSpan);
+            li.appendChild(suppr);
+            ul.appendChild(li);
 
-  function classeCouleur(reste, c) {
-    if (c.timing === 'Disponible' || reste === 0) return 'bleu';
-    if (reste === null) return 'gris';
-    if (reste <= 300) return 'vert';
-    if (reste <= 600) return 'orange';
-    if (reste <= 1800) return 'rouge';
-    return 'violet';
-  }
+            if (msg.timing === 'Disponible' || msg.timing === 'RETARD RDV') {
+                timerSpan.textContent = msg.timing;
+                li.style.color = msg.timing === 'Disponible' ? 'blue' : 'gray';
+                responses[msg.name] = { li, interval: null, remaining: 0 };
+                logReception(msg.name, msg.timing);
+                sortResponses();
+                return;
+            }
 
-  function formater(reste, c) {
-    if (c.timing === 'Disponible') return 'Disponible';
-    if (reste === null) return 'En attente';
-    if (reste === 0) return 'Terminé';
-    const m = String(Math.floor(reste / 60)).padStart(2, '0');
-    const s = String(reste % 60).padStart(2, '0');
-    return m + ':' + s;
-  }
+            let remaining = msg.remaining;
+            const interval = setInterval(() => {
+                if (remaining <= 0) {
+                    timerSpan.textContent = 'Terminé';
+                    li.style.color = 'blue';
+                    clearInterval(interval);
+                    sortResponses();
+                } else {
+                    const minutes = Math.floor(remaining / 60);
+                    const seconds = remaining % 60;
+                    timerSpan.textContent = `reste ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    li.style.color = remaining <= 300 ? 'green' : remaining <= 600 ? 'orange' : remaining <= 1800 ? 'red' : 'purple';
+                    remaining--;
+                }
+            }, 1000);
 
-  function dessiner() {
-    const corps = document.getElementById('corps');
-    const lignes = etat
-      .map(c => ({ c, reste: resteSecondes(c) }))
-      .sort((a, b) => (a.reste === null ? Infinity : a.reste) - (b.reste === null ? Infinity : b.reste));
+            responses[msg.name] = { li, interval, remaining };
+            logReception(msg.name, msg.timing);
+            sortResponses();
+        }
 
-    corps.innerHTML = '';
-    lignes.forEach(({ c, reste }) => {
-      const tr = document.createElement('tr');
-      if (!c.online) tr.className = 'hors-ligne';
-      tr.innerHTML =
-        '<td class="nom"></td>' +
-        '<td></td>' +
-        '<td class="reste ' + classeCouleur(reste, c) + '"></td>' +
-        '<td style="text-align:right"><button class="supprimer" title="Retirer">&times;</button></td>';
-      tr.children[0].textContent = c.name + (c.online ? '' : ' (hors ligne)');
-      tr.children[1].textContent = c.timing || '—';
-      tr.children[2].textContent = formater(reste, c);
-      tr.querySelector('.supprimer').onclick = () => supprimer(c.id);
-      corps.appendChild(tr);
-    });
+        function sortResponses() {
+            const ul = document.getElementById('responses');
+            const items = Object.values(responses)
+                .sort((a, b) => (a.remaining || 999999) - (b.remaining || 999999))
+                .map(item => item.li);
+            ul.innerHTML = '';
+            items.forEach(li => ul.appendChild(li));
+        }
 
-    document.getElementById('vide').style.display = lignes.length ? 'none' : 'block';
-    majEstimation(lignes);
-  }
+        function logReception(name, timing) {
+            playSound();
+            const log = document.getElementById('log');
+            const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const entry = document.createElement('div');
+            entry.textContent = `MAJ ${name} : ${timing} à ${now}`;
+            log.prepend(entry);
+        }
 
-  function majEstimation(lignes) {
-    const valeur = document.getElementById('estimValeur');
-    const detail = document.getElementById('estimDetail');
-    const utiles = lignes.filter(l => l.reste !== null);
-
-    if (!utiles.length) {
-      valeur.textContent = '—';
-      detail.textContent = 'Aucun timing annoncé. Cliquez sur « Demander le timing ».';
-      return;
-    }
-    const meilleur = utiles[0];
-    if (meilleur.reste === 0) {
-      valeur.textContent = 'Immédiat';
-      const dispos = utiles.filter(l => l.reste === 0).map(l => l.c.name);
-      detail.textContent = dispos.length + ' conseiller(s) disponible(s) : ' + dispos.join(', ');
-    } else {
-      const minutes = Math.ceil(meilleur.reste / 60);
-      valeur.textContent = '≈ ' + minutes + ' min';
-      detail.textContent = 'Prochain libre : ' + meilleur.c.name;
-    }
-  }
-
-  setInterval(dessiner, 1000);
-
-  // --- Son ---
-  let sonDebloque = false;
-  function debloquerSon() {
-    if (sonDebloque) return;
-    const a = document.getElementById('son');
-    a.play().then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
-    sonDebloque = true;
-  }
-  document.addEventListener('click', debloquerSon, { once: true });
-
-  function jouerSon() {
-    const a = document.getElementById('son');
-    a.currentTime = 0;
-    a.play().catch(() => bip());
-  }
-  function bip() {
-    try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = 660;
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      osc.start(); osc.stop(ctx.currentTime + 0.4);
-    } catch (e) {}
-  }
-</script>
+        function playSound() {
+            const sound = document.getElementById('chatSound');
+            sound.play().catch(() => {});
+        }
+    </script>
 </body>
 </html>
